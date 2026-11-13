@@ -5,6 +5,11 @@ from typing import List, Dict
 
 from config import TEACHER_MODEL
 
+MAX_RETRIES = 5
+# Errors that retrying cannot fix (bad key, unknown model, unsupported parameter)
+NON_RETRYABLE_ERRORS = (openai.error.AuthenticationError, openai.error.PermissionError,
+                        openai.error.InvalidRequestError)
+
 
 def read_jsonl(path: str) -> List[Dict]:
     with open(path) as fh:
@@ -27,5 +32,9 @@ def call_chatgpt_api(messages: List[str], system_prompt: str, stop: List[str]):
                 stop=stop,
             )
             return response
+        except NON_RETRYABLE_ERRORS:
+            raise
         except Exception as e:
             print("Chatgpt", e)
+            if retries >= MAX_RETRIES:
+                raise

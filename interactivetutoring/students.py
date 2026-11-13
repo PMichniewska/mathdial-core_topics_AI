@@ -4,6 +4,7 @@ import time
 from config import STUDENT_MODEL
 from history import History
 from roles import Roles
+from utils import MAX_RETRIES, NON_RETRYABLE_ERRORS
 
 STUDENT_PROMPT = """
 Student Persona: (STUDENT PERSONA)
@@ -51,9 +52,13 @@ class InstructGPTStudent(object):
                 )
                 response = response["choices"][0]["message"]["content"].strip()
                 done = True
+            except NON_RETRYABLE_ERRORS:
+                raise
             except Exception as e:
                 print(e)
                 errors_counter += 1
+                if errors_counter >= MAX_RETRIES:
+                    raise
                 time.sleep(1)
         utterance = response.replace("Student:", "").replace(STUDENT_NAME + ":", "").replace("<EOM>", "").strip(
             "\n")

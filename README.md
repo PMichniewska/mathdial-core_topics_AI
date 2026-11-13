@@ -73,6 +73,7 @@ API settings are read from `.env` (git-ignored) by `interactivetutoring/config.p
 - Uses the Tilburg University OpenAI-compatible API instead of OpenAI directly; endpoint, key and models are configured via `.env` instead of being hard-coded.
 - Teacher model changed from `gpt-3.5-turbo` to `gpt-6-luna` (configurable via `TEACHER_MODEL`).
 - Student model changed from `gpt-3.5-turbo-instruct` to `gpt-4.1-nano`, and the student now uses the chat completions endpoint instead of the legacy completions endpoint. Student temperature raised from 0 to 0.4 (gpt-4.1-nano is a non-reasoning model, so no reasoning setting applies).
+- API calls no longer retry forever: temporary errors (timeouts, rate limits) are retried up to 5 times, and errors retrying cannot fix (bad key, unknown model, unsupported parameter) stop the script immediately.
 - Added `.gitignore` (excludes `.env` and the virtual env), `.env.example`, and `python-dotenv`/`tqdm` to `requirements.txt`.
 
 # Teacher model - Generate next tutor response
