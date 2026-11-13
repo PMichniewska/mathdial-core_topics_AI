@@ -3,6 +3,8 @@ import time
 import openai
 from typing import List, Dict
 
+from config import TEACHER_MODEL
+
 
 def read_jsonl(path: str) -> List[Dict]:
     with open(path) as fh:
@@ -18,7 +20,7 @@ def call_chatgpt_api(messages: List[str], system_prompt: str, stop: List[str]):
                 time.sleep(1 + retries)
             retries += 1
             response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
+                model=TEACHER_MODEL,
                 messages=[{"role": "system", "content": system_prompt}, *messages],
                 temperature=0,
                 max_tokens=512,

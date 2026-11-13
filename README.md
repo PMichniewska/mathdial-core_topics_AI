@@ -54,10 +54,26 @@ Please note that each row in the file consists of full conversations between a t
 
 # Setup your environment
 ```bash 
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
-echo "For implementing teacher and student models, access to OpenAI API is needed." 
-export OPENAI_API_KEY="<your-openai-api-key>" 
+cp .env.example .env   # then put your API token in .env
 ```
+
+API settings are read from `.env` (git-ignored) by `interactivetutoring/config.py`:
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `OPENAI_API_KEY` | – | API token (never commit it) |
+| `OPENAI_API_BASE` | `https://api.tilburg.ai/v1` | Any OpenAI-compatible endpoint |
+| `TEACHER_MODEL` | `gpt-6-luna` | Teacher model |
+| `STUDENT_MODEL` | `gpt-4.1-nano` | Student model |
+
+## Changes in this fork
+- Uses the Tilburg University OpenAI-compatible API instead of OpenAI directly; endpoint, key and models are configured via `.env` instead of being hard-coded.
+- Teacher model changed from `gpt-3.5-turbo` to `gpt-6-luna` (configurable via `TEACHER_MODEL`).
+- Student model changed from `gpt-3.5-turbo-instruct` to `gpt-4.1-nano`, and the student now uses the chat completions endpoint instead of the legacy completions endpoint.
+- Added `.gitignore` (excludes `.env` and the virtual env), `.env.example`, and `python-dotenv`/`tqdm` to `requirements.txt`.
 
 # Teacher model - Generate next tutor response
 ```bash

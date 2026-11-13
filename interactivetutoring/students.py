@@ -1,6 +1,7 @@
 import openai
 import time
 
+from config import STUDENT_MODEL
 from history import History
 from roles import Roles
 
@@ -41,14 +42,14 @@ class InstructGPTStudent(object):
         done = False
         while not done:
             try:
-                response = openai.Completion.create(
-                    model="gpt-3.5-turbo-instruct",
-                    prompt=prompt,
+                response = openai.ChatCompletion.create(
+                    model=STUDENT_MODEL,
+                    messages=[{"role": "user", "content": prompt}],
                     temperature=0,
                     max_tokens=512,
                     stop=["Teacher:", "teacher:"],
                 )
-                response = response["choices"][0]["text"].strip()
+                response = response["choices"][0]["message"]["content"].strip()
                 done = True
             except Exception as e:
                 print(e)

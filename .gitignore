@@ -1,0 +1,8 @@
+# Secrets
+.env
+
+# Python
+.venv/
+.venv.nosync/
+__pycache__/
+*.pyc

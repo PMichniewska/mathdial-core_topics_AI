@@ -1,6 +1,4 @@
-import os
 import argparse
-import openai
 import json
 from tqdm import tqdm as tqdm
 
@@ -10,8 +8,6 @@ from roles import Roles
 from students import InstructGPTStudent
 from teachers import ChatGPTTeacher
 from utils import read_jsonl
-
-openai.api_key = os.getenv("OPENAI_API_KEY")
 
 
 def get_args():
