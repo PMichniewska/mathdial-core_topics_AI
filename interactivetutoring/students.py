@@ -45,7 +45,7 @@ class InstructGPTStudent(object):
                 response = openai.ChatCompletion.create(
                     model=STUDENT_MODEL,
                     messages=[{"role": "user", "content": prompt}],
-                    temperature=0,
+                    temperature=0.4,
                     max_tokens=512,
                     stop=["Teacher:", "teacher:"],
                 )
