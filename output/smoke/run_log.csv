@@ -1,0 +1,7 @@
+run_id,run_name,new_conversations,total_conversations,seconds,workers,tutor_effort,dropped_params,calls,input_tokens,cached_tokens,output_tokens,reasoning_tokens,cost_usd
+20261113-172111,nextstep_0shot,3,3,0.4,16,none,,18,12673,1152,2075,0,0.002305
+20261113-172112,fewshot_0shot,3,3,11.9,16,none,,19,12002,0,1924,0,0.002162
+20261113-172124,fewshot_2shot,3,3,5.1,16,none,,11,11219,7171,1473,0,0.001858
+20261113-172130,fewshot_5shot,3,3,5.1,16,none,,11,22419,18605,972,0,0.002728
+20261113-172910,fewshot_2shot,3,3,4.8,16,none,,15,16789,5847,1237,0,0.002297
+20261113-172916,fewshot_5shot,3,3,10.5,16,none,,17,36481,17363,1723,0,0.00451

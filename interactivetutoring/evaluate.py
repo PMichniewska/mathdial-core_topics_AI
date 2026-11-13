@@ -1,9 +1,9 @@
 from re import search
-from typing import List
+from typing import Dict, List, Tuple
 import argparse
 
 from roles import Roles
-from utils import read_jsonl
+from utils import read_jsonl, strip_act_tags
 
 
 def get_args():
@@ -11,6 +11,9 @@ def get_args():
     parser.add_argument("--input_file", type=str, default="../output/chatgpt_baseline.jsonl")
     parser.add_argument("--model_name", type=str, default="chatgpt_baseline")
     parser.add_argument("--max_k", type=int, default=7)
+    parser.add_argument("--ground_truth", action="store_true",
+                        help="Evaluate the human dialogues in the 'conversation' field (e.g. data/test.jsonl) "
+                             "instead of generated ones; --model_name is ignored")
     return parser.parse_args()
 
 
@@ -35,7 +38,7 @@ def _is_float(num: str) -> bool:
 
 
 def get_match(text: str, gt_answer: str):
-    all_numbers = findall('[0-9]+(\.[0-9]+)?', text.replace(",", ""))
+    all_numbers = findall(r'[0-9]+(\.[0-9]+)?', text.replace(",", ""))
     answer = gt_answer.replace(",", "")
     if _is_float(answer):
         float_answer = float(answer)
@@ -67,23 +70,40 @@ def evaluate_at_k(utterances_list: List[str], answer, k) -> (bool, bool):
     return is_success_at_k, is_telling_at_k
 
 
-if __name__ == '__main__':
-    args = get_args()
-    data = read_jsonl(args.input_file)
+def extract_answer(ground_truth: str) -> str:
+    """Return the numerical final answer, which is on the last line of a ground-truth solution."""
+    ground_truth_solution = ground_truth.split("\n")[-1].strip()
+    return ground_truth_solution.split("\\n")[-1].strip()
 
-    dataset_success_at_k = [0] * int(args.max_k + 1)
-    dataset_telling_at_k = [0] * int(args.max_k + 1)
+
+def human_conversation(problem: Dict) -> str:
+    """Convert a human MathDial dialogue to the generated format: <EOM> delimiters, no act tags."""
+    return "<EOM>".join(strip_act_tags(utterance.strip()) for utterance in problem["conversation"].split("|EOM|"))
+
+
+def evaluate_problems(data: List[Dict], model_name: str, max_k: int,
+                      ground_truth: bool = False) -> Tuple[List[float], List[float]]:
+    """Compute Success@k and Telling@k for k = 0..max_k (index 0 is unused) over all problems.
+
+    The conversation is read from problem[model_name], or from the human dialogue if ground_truth is set."""
+    dataset_success_at_k = [0] * int(max_k + 1)
+    dataset_telling_at_k = [0] * int(max_k + 1)
 
     for problem in data:
-        for k_point in range(1, args.max_k + 1):
-            conversation_utterances_list = problem[args.model_name].split("<EOM>")
-
-            # Ground truth is in the last line of the ground truth solution
-            ground_truth_solution = problem["ground_truth"].split("\n")[-1].strip()
-            numerical_solution = ground_truth_solution.split("\\n")[-1].strip()
-
+        conversation = human_conversation(problem) if ground_truth else problem[model_name]
+        conversation_utterances_list = conversation.split("<EOM>")
+        numerical_solution = extract_answer(problem["ground_truth"])
+        for k_point in range(1, max_k + 1):
             success_at_k, telling_at_k = evaluate_at_k(conversation_utterances_list, numerical_solution, k_point)
             dataset_success_at_k[k_point] += success_at_k / len(data)
             dataset_telling_at_k[k_point] += telling_at_k / len(data)
+    return dataset_success_at_k, dataset_telling_at_k
+
+
+if __name__ == '__main__':
+    args = get_args()
+    data = read_jsonl(args.input_file)
+    dataset_success_at_k, dataset_telling_at_k = evaluate_problems(data, args.model_name, args.max_k,
+                                                                   args.ground_truth)
     print(f"Success@{args.max_k}:", *dataset_success_at_k)
     print(f"Telling@{args.max_k}:", *dataset_telling_at_k)

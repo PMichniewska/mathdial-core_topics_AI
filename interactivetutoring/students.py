@@ -1,10 +1,7 @@
-import openai
-import time
-
 from config import STUDENT_MODEL
 from history import History
 from roles import Roles
-from utils import MAX_RETRIES, NON_RETRYABLE_ERRORS
+from utils import call_with_retries
 
 STUDENT_PROMPT = """
 Student Persona: (STUDENT PERSONA)
@@ -23,43 +20,37 @@ Student:
 STUDENT_NAME = "Kayla"
 STUDENT_PERSONA = STUDENT_NAME + " is a 7th grade student. She has problem with understanding of what steps or procedures are required to solve a problem."
 
+# STUDENT_PROMPT was written for completion models (text-davinci-003). Sent as a chat message, chat models
+# answer it as an assistant and start tutoring the student, so this system message fixes the role.
+STUDENT_SYSTEM_PROMPT = (f"You are role-playing {STUDENT_NAME}, the student in the dialog below. Write only "
+                         f"{STUDENT_NAME}'s next message, in the first person. Never speak as the teacher and "
+                         f"never address {STUDENT_NAME}.")
+
 
 class InstructGPTStudent(object):
     def __init__(self):
         self.persona = Roles.STUDENT
         self.name = STUDENT_NAME
+        self.last_usage = None  # token usage of the most recent API call
 
     def reset(self):
         pass
 
     def response(self, history: History, question: str, incorrect_solution: str):
-        response = ""
         messages = history.to_delimited_string("<EOM>\n\n")
         prompt = STUDENT_PROMPT.replace("(STUDENT PERSONA)", STUDENT_PERSONA).replace("(STUDENT SOLUTION)",
                                                                                       incorrect_solution).replace(
             "(MATH PROBLEM)", question).replace("(STUDENT NAME)", STUDENT_NAME).replace(
             "(DIALOG HISTORY)", messages)
-        errors_counter = 0
-        done = False
-        while not done:
-            try:
-                response = openai.ChatCompletion.create(
-                    model=STUDENT_MODEL,
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=0.4,
-                    max_tokens=512,
-                    stop=["Teacher:", "teacher:"],
-                )
-                response = response["choices"][0]["message"]["content"].strip()
-                done = True
-            except NON_RETRYABLE_ERRORS:
-                raise
-            except Exception as e:
-                print(e)
-                errors_counter += 1
-                if errors_counter >= MAX_RETRIES:
-                    raise
-                time.sleep(1)
+        response = call_with_retries(
+            model=STUDENT_MODEL,
+            messages=[{"role": "system", "content": STUDENT_SYSTEM_PROMPT}, {"role": "user", "content": prompt}],
+            temperature=0.4,
+            max_tokens=512,
+            stop=["Teacher:", "teacher:"],
+        )
+        self.last_usage = response.usage
+        response = (response.choices[0].message.content or "").strip()
         utterance = response.replace("Student:", "").replace(STUDENT_NAME + ":", "").replace("<EOM>", "").strip(
             "\n")
         return utterance

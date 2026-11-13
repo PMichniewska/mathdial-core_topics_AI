@@ -1,14 +1,18 @@
 import json
+import re
 import time
 import openai
 from typing import List, Dict
 
-from config import TEACHER_MODEL
+from config import get_client
 
 MAX_RETRIES = 5
 # Errors that retrying cannot fix (bad key, unknown model, unsupported parameter)
-NON_RETRYABLE_ERRORS = (openai.error.AuthenticationError, openai.error.PermissionError,
-                        openai.error.InvalidRequestError)
+NON_RETRYABLE_ERRORS = (openai.AuthenticationError, openai.PermissionDeniedError, openai.BadRequestError,
+                        openai.NotFoundError, openai.UnprocessableEntityError)
+
+# Dialogue-act tag at the start of a MathDial utterance, e.g. "Teacher: (focus)Okay"
+ACT_TAG_RE = re.compile(r"^(Teacher|Student):\s*\([^)]*\)", re.MULTILINE)
 
 
 def read_jsonl(path: str) -> List[Dict]:
@@ -16,25 +20,23 @@ def read_jsonl(path: str) -> List[Dict]:
         return [json.loads(line) for line in fh.readlines() if line]
 
 
-def call_chatgpt_api(messages: List[str], system_prompt: str, stop: List[str]):
-    retries = 0
-    while True:
+def strip_act_tags(text: str) -> str:
+    """Remove dialogue-act tags from every utterance in text: "Teacher: (focus)Okay" -> "Teacher: Okay"."""
+    return ACT_TAG_RE.sub(r"\1: ", text)
+
+
+def call_with_retries(**kwargs):
+    """Call the chat completions API with kwargs and return the response.
+
+    Temporary errors (timeouts, rate limits, server errors) are retried up to MAX_RETRIES
+    times with exponential backoff; NON_RETRYABLE_ERRORS are raised immediately."""
+    for attempt in range(1, MAX_RETRIES + 1):
         try:
-            if retries > 0:
-                print("sleeping for 1 second")
-                time.sleep(1 + retries)
-            retries += 1
-            response = openai.ChatCompletion.create(
-                model=TEACHER_MODEL,
-                messages=[{"role": "system", "content": system_prompt}, *messages],
-                temperature=0,
-                max_tokens=512,
-                stop=stop,
-            )
-            return response
+            return get_client().chat.completions.create(**kwargs)
         except NON_RETRYABLE_ERRORS:
             raise
-        except Exception as e:
-            print("Chatgpt", e)
-            if retries >= MAX_RETRIES:
+        except openai.OpenAIError as e:
+            print(f"API error (attempt {attempt}/{MAX_RETRIES}): {e}")
+            if attempt == MAX_RETRIES:
                 raise
+            time.sleep(2 ** attempt)
