@@ -1,0 +1,11 @@
+| Condition | n | Success@5 | Telling@5 | Success@10 | Telling@10 |
+|---|---:|---:|---:|---:|---:|
+| NextStep (ours) | 599 | 32.6% | 0.0% | 34.4% | 0.0% |
+| GPT-6 Luna 0-shot | 599 | 97.0% | 4.8% | 97.7% | 4.8% |
+| GPT-6 Luna 2-shot | 599 | 98.5% | 2.3% | 98.7% | 2.5% |
+| GPT-6 Luna 5-shot | 599 | 98.3% | 2.2% | 98.5% | 2.5% |
+| Ground truth (repo evaluator) | 599 | 72.0% | 8.2% | 86.1% | 12.2% |
+| NextStep (paper) |  | 25% | 0% | 25% | 0% |
+| ChatGPT (paper) |  | 29% | 16% | 53% | 32% |
+| Flan-T5 780M (paper) |  | 30% | <1% | 39% | 4% |
+| Ground truth (paper) |  | 59% | <1% | 82% | 4% |

@@ -147,8 +147,49 @@ Cost at $0.10 per 1M input and $0.50 per 1M output tokens (from `output/run_log.
 
 Smoke tests (3 items) and pilots (20 items) added $0.11, so the whole replication cost about $1.47. NextStep makes the most calls because its student rarely finishes early. Placing the few-shot examples before the problem lets 37–40% of the 2- and 5-shot input tokens come from the prompt cache.
 
+## Experiment 2: calibrated student
+In the main run, the student reaches the answer on its own so often (NextStep 72.8% vs. 25% in the paper) that every tutor condition hits the ceiling. As a second experiment, all four conditions were rerun with a calibrated student. The original results above are unchanged; the calibrated run lives in `output/calibrated/` and `results/calibrated/`.
+
+**What changed.** Only the student's system message. `STUDENT_PROMPT` is unchanged; `--student calibrated` appends `STUDENT_CALIBRATION` (in `students.py`) to the role instruction:
+
+> Kayla believes her solution is complete and correct. When asked to continue, she says she has already finished and repeats her answer. She only reconsiders a step when the teacher asks a specific question about that step, and then changes only that step.
+
+This spells out the original persona line "Kayla thinks their answer is correct" rather than adding a new trait.
+
+**Calibration procedure.** The wording was chosen on `data/calibration.jsonl` (`scripts/make_calibration_set.py`): 50 training dialogues, one per problem, with no problem from the test set and none of the few-shot example problems. Each round ran NextStep and the 0-shot tutor on these 50 problems. The target, fixed in advance, was a NextStep Success@10 close to the paper's 25%, while the 0-shot tutor still clearly beats NextStep. Calibration was limited to three rounds and finished in two, before the test set was touched (runs in `output/calibration/`):
+
+| Student (50 calibration problems) | NextStep S@10 | 0-shot S@10 |
+|---|---:|---:|
+| Original | 72% | 100% |
+| Round 1: "keeps her answer unless the teacher's questions point her to a specific step that is wrong" | 56% | 100% |
+| Round 2 (final, quoted above) | 28% | 100% |
+
+**Results** (full test set, 599 dialogues; `python scripts/make_results.py --output_dir output/calibrated --results_dir results/calibrated`):
+
+| Condition | Success@1 | Success@5 | Success@10 | Telling@5 | Telling@10 |
+|---|---:|---:|---:|---:|---:|
+| NextStep | 31.6% | 32.6% | 34.4% | 0.0% | 0.0% |
+| GPT-6 Luna 0-shot | 76.6% | 97.0% | 97.7% | 4.8% | 4.8% |
+| GPT-6 Luna 2-shot | 69.9% | 98.5% | 98.7% | 2.3% | 2.5% |
+| GPT-6 Luna 5-shot | 67.6% | 98.3% | 98.5% | 2.2% | 2.5% |
+
+![Success@k and Telling@k, calibrated student](results/calibrated/curves.png)
+
+- **The calibration worked for NextStep.** Success@10 fell from 72.8% to 34.4%, and the curve is now almost flat, as in the paper. 187 of 599 dialogues (31.2%) succeed on the student's first turn, before the tutor has said anything (the matching artifact described above); only 3.2 points come from the student correcting itself.
+- **The tutor still reaches the ceiling.** All three conditions still reach about 98% Success@10. The transcripts show why: GPT-6 Luna names the specific step that went wrong and asks a targeted question about it, which is exactly what makes the calibrated student reconsider. With a student that behaves like the paper's under NextStep, the tutor now adds about 64 points of success over the baseline (vs. 27 points with the original student).
+- **Prompting conditions.** The pattern matches the main run. 0-shot reaches the answer fastest (Success@1 76.6% vs. 69.9% for 2-shot and 67.6% for 5-shot; exact McNemar p = 0.001 and p < 0.001), but tells about twice as often (Telling@10 4.8% vs. 2.5% for both few-shot conditions; p = 0.029 and p = 0.034). Success@10 does not differ between conditions (all p > 0.1), and 2-shot and 5-shot do not differ on any metric. p-values are not corrected for multiple comparisons.
+- **Cost.** The four full runs cost $1.30 (10,311 API calls, 370 s); calibration and smoke tests added $0.15, so the second experiment cost $1.45.
+
+```bash
+python scripts/make_calibration_set.py                       # data/calibration.jsonl
+python interactivetutoring/gpt_baseline.py --student calibrated --teacher nextstep --input_file data/calibration.jsonl --output_dir output/calibration/r2_calibrated
+python interactivetutoring/gpt_baseline.py --student calibrated --teacher nextstep              # -> output/calibrated/
+python interactivetutoring/gpt_baseline.py --student calibrated --teacher fewshot --shots 0     # likewise --shots 2, 5
+python scripts/make_results.py --output_dir output/calibrated --results_dir results/calibrated
+```
+
 ## Limitations
-- **Different student.** The simulated student is `gpt-4.1-nano` at temperature 0.4, not the paper's InstructGPT student, so absolute numbers are not directly comparable with the paper. The NextStep baseline shows that this student reaches the answer on its own far more often (72.8% vs. 25% Success@10), which pushes all tutor conditions to the ceiling. The student was deliberately not recalibrated, so that `STUDENT_PROMPT` stays as in the original repo.
+- **Different student.** The simulated student is `gpt-4.1-nano` at temperature 0.4, not the paper's InstructGPT student, so absolute numbers are not directly comparable with the paper. The NextStep baseline shows that this student reaches the answer on its own far more often (72.8% vs. 25% Success@10), which pushes all tutor conditions to the ceiling. The main run deliberately keeps this student; Experiment 2 repeats everything with a student calibrated against NextStep, which brings NextStep close to the paper but leaves the tutors at the ceiling.
 - **Cached responses.** The Tilburg API appears to return cached responses for identical requests (a repeated run finished instantly with identical tokens), so rerunning a condition reproduces the same conversations even at temperature 0.4.
 - **Evaluator does not reproduce the paper's ground truth.** On the human test dialogues this repo's evaluator gives Success@5/10 = 72%/86% and Telling@5/10 = 8%/12%, versus 59%/82% and <1%/4% reported in the paper. A likely cause is that the numeric matching counts any occurrence of the answer number (e.g. in an intermediate step or a restated question), but the exact difference to the paper's evaluation is unknown. Compare conditions with each other rather than with the paper's absolute numbers.
 
