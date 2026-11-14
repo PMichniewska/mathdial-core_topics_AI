@@ -1,0 +1,16 @@
+run_id,item_id,turn,role,model,input_tokens,cached_tokens,output_tokens,reasoning_tokens
+20261114-170548,0,0,student,gpt-4.1-nano,449,0,119,0
+20261114-170548,1,0,student,gpt-4.1-nano,378,0,81,0
+20261114-170548,2,0,student,gpt-4.1-nano,342,0,123,0
+20261114-170548,1,0,teacher,gpt-6-luna,365,0,70,0
+20261114-170548,2,0,teacher,gpt-6-luna,316,0,93,0
+20261114-170548,1,1,student,gpt-4.1-nano,536,0,80,0
+20261114-170548,2,1,student,gpt-4.1-nano,565,0,48,0
+20261114-170548,2,1,teacher,gpt-6-luna,464,0,132,0
+20261114-170548,2,2,student,gpt-4.1-nano,754,0,63,0
+20261114-170548,1,1,teacher,gpt-6-luna,522,0,64,0
+20261114-170548,1,2,student,gpt-4.1-nano,687,0,12,0
+20261114-170548,1,2,teacher,gpt-6-luna,605,0,69,0
+20261114-170548,1,3,student,gpt-4.1-nano,777,0,32,0
+20261114-170548,0,0,teacher,gpt-6-luna,380,0,87,0
+20261114-170548,0,1,student,gpt-4.1-nano,661,0,87,0

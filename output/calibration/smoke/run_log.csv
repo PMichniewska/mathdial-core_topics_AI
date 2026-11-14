@@ -1,0 +1,2 @@
+run_id,run_name,new_conversations,total_conversations,seconds,workers,tutor_effort,dropped_params,calls,input_tokens,cached_tokens,output_tokens,reasoning_tokens,cost_usd
+20261114-170311,nextstep_0shot,3,3,6.9,16,none,,12,8366,0,1014,0,0.001344

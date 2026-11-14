@@ -15,7 +15,7 @@ from evaluate import extract_answer, get_match
 from history import History
 from message import Message
 from roles import Roles
-from students import InstructGPTStudent
+from students import STUDENT_SYSTEM_PROMPTS, InstructGPTStudent
 from teachers import TUTOR_PARAMS, FewShotTeacher, NextStepTeacher, check_tutor_params
 from utils import read_jsonl
 
@@ -38,7 +38,10 @@ def get_args():
     parser.add_argument("--workers", type=int, default=16)
     parser.add_argument("--seed", type=int, default=42, help="seed for sampling the few-shot example pool")
     parser.add_argument("--max_utterances", type=int, default=10)
-    parser.add_argument("--output_dir", type=str, default="output")
+    parser.add_argument("--student", type=str, choices=list(STUDENT_SYSTEM_PROMPTS), default="original",
+                        help="student variant (see students.py)")
+    parser.add_argument("--output_dir", type=str, default=None,
+                        help="default: output for the original student, output/{student} otherwise")
     parser.add_argument("--export_file", type=str, default=None,
                         help="default: {output_dir}/{teacher}_{shots}shot.jsonl")
     parser.add_argument("--model_name", type=str, default=None,
@@ -133,12 +136,12 @@ class RunWriter(object):
 
 
 def run_conversation(item_id: int, problem: Dict, teacher, model_name: str, max_utterances: int,
-                     writer: RunWriter) -> History:
+                     writer: RunWriter, student_variant: str = "original") -> History:
     """Simulate one tutoring conversation and write it to the export file.
 
     The conversation ends as soon as a student message contains the correct final answer (Success@k and
     Telling@k only depend on its first occurrence), or after max_utterances student messages."""
-    student = InstructGPTStudent()
+    student = InstructGPTStudent(student_variant)
     question = problem["question"]
     ground_truth_solution = problem["ground_truth"]
     incorrect_solution = problem["student_incorrect_solution"]
@@ -171,6 +174,8 @@ if __name__ == '__main__':
     args = get_args()
     if args.teacher == "nextstep":
         args.shots = 0
+    if args.output_dir is None:
+        args.output_dir = "output" if args.student == "original" else os.path.join("output", args.student)
     run_name = f"{args.teacher}_{args.shots}shot"
     model_name = args.model_name or run_name
     export_file = args.export_file or os.path.join(args.output_dir, f"{run_name}.jsonl")
@@ -196,7 +201,7 @@ if __name__ == '__main__':
     try:
         with ThreadPoolExecutor(max_workers=args.workers) as executor:
             futures = {executor.submit(run_conversation, item_id, problem, make_teacher(), model_name,
-                                       args.max_utterances, writer): problem
+                                       args.max_utterances, writer, args.student): problem
                        for item_id, problem in todo}
             try:
                 for future in tqdm(as_completed(futures), total=len(futures)):

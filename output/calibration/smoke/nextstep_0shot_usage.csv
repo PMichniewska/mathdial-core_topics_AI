@@ -1,0 +1,13 @@
+run_id,item_id,turn,role,model,input_tokens,cached_tokens,output_tokens,reasoning_tokens
+20261114-170311,2,0,student,gpt-4.1-nano,359,0,114,0
+20261114-170311,1,0,student,gpt-4.1-nano,352,0,152,0
+20261114-170311,0,0,student,gpt-4.1-nano,404,0,189,0
+20261114-170311,2,1,student,gpt-4.1-nano,489,0,55,0
+20261114-170311,2,2,student,gpt-4.1-nano,560,0,69,0
+20261114-170311,2,3,student,gpt-4.1-nano,645,0,76,0
+20261114-170311,2,4,student,gpt-4.1-nano,737,0,50,0
+20261114-170311,2,5,student,gpt-4.1-nano,803,0,62,0
+20261114-170311,2,6,student,gpt-4.1-nano,881,0,47,0
+20261114-170311,2,7,student,gpt-4.1-nano,944,0,103,0
+20261114-170311,2,8,student,gpt-4.1-nano,1063,0,50,0
+20261114-170311,2,9,student,gpt-4.1-nano,1129,0,47,0
